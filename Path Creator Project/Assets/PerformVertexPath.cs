@@ -83,7 +83,7 @@ namespace PathCreation
 
             // the 2 is for the starting and ending vertex of the straight line segment
             // the second term reflects the number of vert long the arc
-            int numVerts = 2 + Mathf.RoundToInt( Mathf.Rad2Deg * arcAngleRads * arcResolutionVertPerDegree);
+            int numVerts = 2 + Mathf.RoundToInt(Mathf.Rad2Deg * arcAngleRads * arcResolutionVertPerDegree);
 
             // Total distance from the first vertex up to each vertex in the polyline
             //float length = 
@@ -99,7 +99,7 @@ namespace PathCreation
 
             /// Percentage along the path at each vertex (0 being start of path, and 1 being the end)
             // times = new float[numVerts];
-            
+
             // bounds = new Bounds((pathSplitData.minMax.Min + pathSplitData.minMax.Max) / 2, pathSplitData.minMax.Max - pathSplitData.minMax.Min);
 
             // Figure out up direction for path
@@ -112,20 +112,25 @@ namespace PathCreation
 
             localPoints[0] = new Vector3(0, 0, 0);
 
-            float rateOfChangeRads =  arcAngleRads / (numVerts-2);
+            float rateOfChangeRads = arcAngleRads / (numVerts - 2);
 
             //for (float i = Mathf.PI; i < Mathf.PI/2.0f; i++)
-            for (int i = 1; i<localPoints.Length; i++)
+            for (int i = 1; i < localPoints.Length; i++)
             {
-                float rad = Mathf.PI - rateOfChangeRads*i;
+                float rad = Mathf.PI - rateOfChangeRads * i;
 
-                // get points from pi - pi/2.     
-                localPoints[i] = new Vector3(Mathf.Cos(rad), 0, Mathf.Sin(rad));
+                // circle center position along the local x axis
+                Vector3 circleCenter = new Vector3(circleRadiusM, 0, 0);
+                // Mathf.Tan(theta / 2.0f)
+
+                Vector3 unshiftedPointOnCircle = new Vector3(Mathf.Cos(rad), 0, Mathf.Sin(rad));
+
+                localPoints[i] = unshiftedPointOnCircle + circleCenter;
                 localNormals[i] = Vector3.up;
-                //localTangent[i] = 
+                localTangents[i] = Vector3.Cross(unshiftedPointOnCircle.normalized, Vector3.up);
 
             }
-
+        }
 
 
             //VertexPath(BezierPath bezierPath, VertexPathUtility.PathSplitData pathSplitData, Transform transform)
@@ -239,7 +244,7 @@ namespace PathCreation
 
             #region Public methods and accessors
 
-            public void UpdateTransform(Transform transform)
+        public void UpdateTransform(Transform transform)
         {
             this.transform = transform;
         }
