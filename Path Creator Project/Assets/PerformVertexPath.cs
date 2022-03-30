@@ -21,9 +21,13 @@ namespace PathCreation
 
         //enum PathSpace { xyz, xy, xz };
 
+        [SerializeField, HideInInspector]
         public PathSpace space;
+        [SerializeField, HideInInspector]
         public Vector3[] localPoints;
+        [SerializeField, HideInInspector]
         public Vector3[] localTangents;
+        [SerializeField, HideInInspector]
         public Vector3[] localNormals;
 
 
@@ -48,7 +52,8 @@ namespace PathCreation
         [SerializeField, HideInInspector] 
         public Vector3 up;
 
-        
+        private bool isLeftTurn = false;
+
         // Default values and constants:
         // const int accuracy = 10; // A scalar for how many times bezier path is divided when determining vertex positions
         // const float minVertexSpacing = .01f;
@@ -57,8 +62,9 @@ namespace PathCreation
         public float straightLegLength = 20.0f; // legnth of the straight entrance / entrance portion of the road
         public float arcLengthM = 40.0f; // length of the arc in meters
         public float circleRadiusM = 20.0f;
-        public int arcResolutionVertPerDegree = 20;
+        public int verticesPerMeter = 1;
 
+        [SerializeField, HideInInspector]
         public bool isClosedLoop = false;
 
         
@@ -85,12 +91,14 @@ namespace PathCreation
 
         /// Internal contructor
         /// 
-        public void updatePoints(float straightLegLength, float arcLengthM, float circleRadiusM, float arcResolutionVertPerDegree, Transform transform)
+        public void updatePoints(float straightLegLength, float arcLengthM, float circleRadiusM, int verticesPerMeter, bool isLeftTurn, Transform transform)
         {
 
+            length = 2 * straightLegLength + arcLengthM;
+            int numVertsOnAStraightLeg = Mathf.RoundToInt(straightLegLength / verticesPerMeter);
+            int numVertsOnArc= Mathf.RoundToInt(arcLengthM / verticesPerMeter);
+            int numVerts = 2 * numVertsOnAStraightLeg + numVertsOnArc;
 
-            //this.transform = transform;
-            //space = bezierPath.Space;
             space = PathSpace.xz;
 
             //isClosedLoop = bezierPath.IsClosed;
@@ -99,21 +107,12 @@ namespace PathCreation
 
             // the 2 is for the starting and ending vertex of the straight line segment
             // the second term reflects the number of vert long the arc
-            int numVerts = 2 + Mathf.RoundToInt(Mathf.Rad2Deg * arcAngleRads * arcResolutionVertPerDegree);
-
-            // Total distance from the first vertex up to each vertex in the polyline
-            //float length = 
+            //int numVerts = 2 + Mathf.RoundToInt(Mathf.Rad2Deg * arcAngleRads * arcResolutionVertPerDegree);d
 
             localPoints = new Vector3[numVerts];
             localNormals = new Vector3[numVerts];
             localTangents = new Vector3[numVerts];
-            
-            
             cumulativeLengthAtEachVertex = new float[numVerts];
-
-
-            // how is this different than length?
-            //cumulativeLengthAtEachVertex = new float[numVerts]; 
 
             /// Percentage along the path at each vertex (0 being start of path, and 1 being the end)
             times = new float[numVerts];
@@ -128,59 +127,64 @@ namespace PathCreation
 
             ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  
             ////////  Here is a three vector straight road (a test case!)
-            length = straightLegLength;
-
-            localPoints[0] = new Vector3(0, 0, -straightLegLength);
-            localTangents[0] = new Vector3(0, 0, 1); // directions, or point in local space?
-            localNormals[0] = new Vector3(1, 0, 0); // directions, or point in local space?
-            cumulativeLengthAtEachVertex[0] = 0;
-            times[0] = cumulativeLengthAtEachVertex[0] / length;
-
-            localPoints[1] = new Vector3(0, 0, 0);
-            localTangents[1] = new Vector3(0, 0, 1); // directions, or point in local space?
-            localNormals[1] = new Vector3(1, 0, 0); // directions, or point in local space?
-            cumulativeLengthAtEachVertex[1] = straightLegLength/2.0f;
-            times[0] = cumulativeLengthAtEachVertex[1] / length;
-
-            localPoints[2] = new Vector3(0, 0, straightLegLength);
-            localTangents[2] = new Vector3(0, 0, 1); // directions, or point in local space?
-            localNormals[2] = new Vector3(1, 0, 0); // directions, or point in local space?
-            cumulativeLengthAtEachVertex[2] = straightLegLength;
-            times[0] = cumulativeLengthAtEachVertex[2] / length;
-
-
-
-            ////////
-            ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  
-
-            //// GD:  The start of my first attempt, before I realized that I need to check some assumptions.
+            //length = straightLegLength;
 
             //localPoints[0] = new Vector3(0, 0, -straightLegLength);
-            //localTangents[0] = new Vector3(1, 0, -straightLegLength); // directions, or point in local space?
-            //localNormals[0] = new Vector3(0, 1, 0); // directions, or point in local space?
+            //localTangents[0] = new Vector3(0, 0, 1); // directions, or point in local space?
+            //localNormals[0] = new Vector3(1, 0, 0); // directions, or point in local space?
+            //cumulativeLengthAtEachVertex[0] = 0;
+            //times[0] = cumulativeLengthAtEachVertex[0] / length;
 
-            //// localNormals[0] = new Vector3(0, 1, -straightLegLength); // directions, or point in local space?
+            //localPoints[1] = new Vector3(0, 0, 0);
+            //localTangents[1] = new Vector3(0, 0, 1); // directions, or point in local space?
+            //localNormals[1] = new Vector3(1, 0, 0); // directions, or point in local space?
+            //cumulativeLengthAtEachVertex[1] = straightLegLength/2.0f;
+            //times[0] = cumulativeLengthAtEachVertex[1] / length;
 
-            //float rateOfChangeRads = arcAngleRads / (numVerts - 2);
+d            ////////
+            ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  
+dd            // The incoming straight leg of the road.
 
-            ////for (float i = Mathf.PI; i < Mathf.PI/2.0f; i++)
-            //for (int i = 1; i < localPoints.Length; i++)
-            //{
-            //    // move clockwise from pi by rateOfChangeRads * i
-            //    float rad = Mathf.PI - rateOfChangeRads * i;
+            Vector3 straightPathDir = new Vector3(0, 0, 1);
+            Vector3 startingPoint = new Vector3(0, 0, -straightLegLength);
 
-            //    // circle center position along the local x axis
-            //    Vector3 circleCenter = new Vector3(circleRadiusM, 0, 0);
-            //    // Mathf.Tan(theta / 2.0f)
+            for (int i = 0; i < numVertsOnAStraightLeg; i++)
+            {
+                cumulativeLengthAtEachVertex[i] = i * (straightLegLength / numVertsOnAStraightLeg);
+                float distanceOnLeg = straightLegLength * (i /numVertsOnAStraightLeg);
+                
+                localPoints[i] = startingPoint + straightPathDir * distanceOnLeg;
+                localTangents[i] = new Vector3(0, 0, 1);
+                localNormals[i] = new Vector3(1, 0, 0);
+                
+                times[i] = cumulativeLengthAtEachVertex[i] / length;
+            }
 
-            //    // x,z location relative to the center of the circle
-            //    Vector3 unshiftedPointOnCircle = new Vector3(Mathf.Cos(rad), 0, Mathf.Sin(rad));
+            // The arc
 
-            //    localPoints[i] = unshiftedPointOnCircle + circleCenter;
-            //    localNormals[i] = Vector3.up; // directions, or point in local space?
-            //    localTangents[i] = Vector3.Cross(unshiftedPointOnCircle.normalized, Vector3.up); // directions, or point in local space?
+            float rateOfChangeRads = arcAngleRads / (numVerts - 2);
+            
+            for (int i = numVertsOnAStraightLeg; i < localPoints.Length; i++)
+            {
+                // move clockwise from pi by rateOfChangeRads * i
+                float rad = Mathf.PI - rateOfChangeRads * i;
 
-            //}
+                // circle center position along the local x axis
+                Vector3 circleCenter = new Vector3(circleRadiusM, 0, 0);
+
+                // x,z location relative to the center of the circle
+                Vector3 unshiftedPointOnCircle = new Vector3(Mathf.Cos(rad), 0, Mathf.Sin(rad));
+
+                localPoints[i] = unshiftedPointOnCircle + circleCenter;
+                localNormals[i] = 
+                localTangents[i] = 
+                //Vector3.Cross(unshiftedPointOnCircle.normalized, Vector3.up); // directions, or point in local space?
+                //cumulativeLengthAtEachVertex[i] = straightLegLength;
+                //times[i] = cumulativeLengthAtEachVertex[2] / length;
+
+            }
+
+
 
             // Todo:  add final point ( the end of the exit leg along the final tangent )
         }

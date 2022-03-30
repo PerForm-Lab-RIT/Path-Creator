@@ -240,11 +240,17 @@ MonoBehaviour:
   localPoints: []
   localTangents: []
   localNormals: []
+  times: []
+  length: 0
+  cumulativeLengthAtEachVertex: []
+  bounds:
+    m_Center: {x: 0, y: 0, z: 0}
+    m_Extent: {x: 0, y: 0, z: 0}
   up: {x: 0, y: 0, z: 0}
   straightLegLength: 20
   arcLengthM: 40
   circleRadiusM: 20
-  arcResolutionVertPerDegree: 20
+  verticesPerMeter: 1
   isClosedLoop: 0
 --- !u!114 &1014254057
 MonoBehaviour:

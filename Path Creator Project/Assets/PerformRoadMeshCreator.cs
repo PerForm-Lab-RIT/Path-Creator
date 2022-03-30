@@ -36,6 +36,7 @@ namespace PathCreation
                 30.0f,
                 30.0f,
                 30,
+                false,
                 gameObject.transform);
 
             
