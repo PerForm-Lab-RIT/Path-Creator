@@ -3,51 +3,65 @@ using PathCreation.Utility;
 using UnityEngine;
 
 
+
+/// A vertex path is a collection of points (vertices) that lie along a bezier path.
+/// This allows one to do things like move at a constant speed along the path,
+/// which is not possible with a bezier path directly due to how they're constructed mathematically.
+
+/// This class also provides methods for getting the position along the path at a certain distance or time
+/// (where time = 0 is the start of the path, and time = 1 is the end of the path).
+/// Other info about the path (tangents, normals, rotation) can also be retrieved in this manner.
+
 namespace PathCreation
 {
-    /// A vertex path is a collection of points (vertices) that lie along a bezier path.
-    /// This allows one to do things like move at a constant speed along the path,
-    /// which is not possible with a bezier path directly due to how they're constructed mathematically.
-
-    /// This class also provides methods for getting the position along the path at a certain distance or time
-    /// (where time = 0 is the start of the path, and time = 1 is the end of the path).
-    /// Other info about the path (tangents, normals, rotation) can also be retrieved in this manner.
-
-    public class PerForMVertexPath : MonoBehaviour
+    public class PerformVertexPath : MonoBehaviour
     {
         #region Fields
 
-        public readonly PathSpace space;
-        // public readonly bool isClosedLoop;
-        public readonly Vector3[] localPoints;
-        public readonly Vector3[] localTangents;
-        public readonly Vector3[] localNormals;
+
+        //enum PathSpace { xyz, xy, xz };
+
+        public PathSpace space;
+        public Vector3[] localPoints;
+        public Vector3[] localTangents;
+        public Vector3[] localNormals;
+
+
 
         /// Percentage along the path at each vertex (0 being start of path, and 1 being the end)
-        public readonly float[] times;
+        [SerializeField, HideInInspector]
+        public float[] times;
 
         /// Total distance between the vertices of the polyline
-        //public readonly float length;
+        [SerializeField, HideInInspector]
+        public float length;
 
         /// Total distance from the first vertex up to each vertex in the polyline
-        // public readonly float[] cumulativeLengthAtEachVertex;
+        [SerializeField, HideInInspector] 
+        public float[] cumulativeLengthAtEachVertex;
 
         /// Bounding box of the path
-        // public readonly Bounds bounds;
-        /// Equal to (0,0,-1) for 2D paths, and (0,1,0) for XZ paths
-        public readonly Vector3 up;
+        [SerializeField, HideInInspector] 
+        public Bounds bounds;
 
+        /// Equal to (0,0,-1) for 2D paths, and (0,1,0) for XZ paths
+        [SerializeField, HideInInspector] 
+        public Vector3 up;
+
+        
         // Default values and constants:
         // const int accuracy = 10; // A scalar for how many times bezier path is divided when determining vertex positions
         // const float minVertexSpacing = .01f;
-
-        Transform transform;
 
         // Added by GD
         public float straightLegLength = 20.0f; // legnth of the straight entrance / entrance portion of the road
         public float arcLengthM = 40.0f; // length of the arc in meters
         public float circleRadiusM = 20.0f;
         public int arcResolutionVertPerDegree = 20;
+
+        public bool isClosedLoop = false;
+
+        
 
         #endregion
 
@@ -68,13 +82,17 @@ namespace PathCreation
         //    this(bezierPath, VertexPathUtility.SplitBezierPathEvenly(bezierPath, Mathf.Max(vertexSpacing, minVertexSpacing), VertexPath.accuracy), transform)
         //{ }
 
+
         /// Internal contructor
         /// 
-        PerForMVertexPath(float straightLegLength, float arcLengthM, float circleRadiusM, float arcResolutionVertPerDegree, Transform transform)
+        public void updatePoints(float straightLegLength, float arcLengthM, float circleRadiusM, float arcResolutionVertPerDegree, Transform transform)
         {
-            this.transform = transform;
+
+
+            //this.transform = transform;
             //space = bezierPath.Space;
             space = PathSpace.xz;
+
             //isClosedLoop = bezierPath.IsClosed;
 
             float arcAngleRads = arcLengthM / Mathf.PI;
@@ -89,14 +107,16 @@ namespace PathCreation
             localPoints = new Vector3[numVerts];
             localNormals = new Vector3[numVerts];
             localTangents = new Vector3[numVerts];
+            
+            
+            cumulativeLengthAtEachVertex = new float[numVerts];
 
-            localTangents = new Vector3[numVerts];
 
             // how is this different than length?
             //cumulativeLengthAtEachVertex = new float[numVerts]; 
 
             /// Percentage along the path at each vertex (0 being start of path, and 1 being the end)
-            // times = new float[numVerts];
+            times = new float[numVerts];
 
             // bounds = new Bounds((pathSplitData.minMax.Min + pathSplitData.minMax.Max) / 2, pathSplitData.minMax.Max - pathSplitData.minMax.Min);
 
@@ -106,34 +126,61 @@ namespace PathCreation
             up = Vector3.up; // gD
             Vector3 lastRotationAxis = up;
 
-            // hardcoding some values in here
+            ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  
+            ////////  Here is a three vector straight road (a test case!)
+            length = straightLegLength;
 
             localPoints[0] = new Vector3(0, 0, -straightLegLength);
-            localTangents[0] = new Vector3(1, 0, -straightLegLength); // directions, or point in local space?
-            localNormals[0] = new Vector3(0, 1, 0); // directions, or point in local space?
+            localTangents[0] = new Vector3(0, 0, 1); // directions, or point in local space?
+            localNormals[0] = new Vector3(1, 0, 0); // directions, or point in local space?
+            cumulativeLengthAtEachVertex[0] = 0;
+            times[0] = cumulativeLengthAtEachVertex[0] / length;
 
-            // localNormals[0] = new Vector3(0, 1, -straightLegLength); // directions, or point in local space?
+            localPoints[1] = new Vector3(0, 0, 0);
+            localTangents[1] = new Vector3(0, 0, 1); // directions, or point in local space?
+            localNormals[1] = new Vector3(1, 0, 0); // directions, or point in local space?
+            cumulativeLengthAtEachVertex[1] = straightLegLength/2.0f;
+            times[0] = cumulativeLengthAtEachVertex[1] / length;
 
-            float rateOfChangeRads = arcAngleRads / (numVerts - 2);
+            localPoints[2] = new Vector3(0, 0, straightLegLength);
+            localTangents[2] = new Vector3(0, 0, 1); // directions, or point in local space?
+            localNormals[2] = new Vector3(1, 0, 0); // directions, or point in local space?
+            cumulativeLengthAtEachVertex[2] = straightLegLength;
+            times[0] = cumulativeLengthAtEachVertex[2] / length;
 
-            //for (float i = Mathf.PI; i < Mathf.PI/2.0f; i++)
-            for (int i = 1; i < localPoints.Length; i++)
-            {
-                // move clockwise from pi by rateOfChangeRads * i
-                float rad = Mathf.PI - rateOfChangeRads * i;
 
-                // circle center position along the local x axis
-                Vector3 circleCenter = new Vector3(circleRadiusM, 0, 0);
-                // Mathf.Tan(theta / 2.0f)
 
-                // x,z location relative to the center of the circle
-                Vector3 unshiftedPointOnCircle = new Vector3(Mathf.Cos(rad), 0, Mathf.Sin(rad));
+            ////////
+            ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  
 
-                localPoints[i] = unshiftedPointOnCircle + circleCenter;
-                localNormals[i] = Vector3.up; // directions, or point in local space?
-                localTangents[i] = Vector3.Cross(unshiftedPointOnCircle.normalized, Vector3.up); // directions, or point in local space?
+            //// GD:  The start of my first attempt, before I realized that I need to check some assumptions.
 
-            }
+            //localPoints[0] = new Vector3(0, 0, -straightLegLength);
+            //localTangents[0] = new Vector3(1, 0, -straightLegLength); // directions, or point in local space?
+            //localNormals[0] = new Vector3(0, 1, 0); // directions, or point in local space?
+
+            //// localNormals[0] = new Vector3(0, 1, -straightLegLength); // directions, or point in local space?
+
+            //float rateOfChangeRads = arcAngleRads / (numVerts - 2);
+
+            ////for (float i = Mathf.PI; i < Mathf.PI/2.0f; i++)
+            //for (int i = 1; i < localPoints.Length; i++)
+            //{
+            //    // move clockwise from pi by rateOfChangeRads * i
+            //    float rad = Mathf.PI - rateOfChangeRads * i;
+
+            //    // circle center position along the local x axis
+            //    Vector3 circleCenter = new Vector3(circleRadiusM, 0, 0);
+            //    // Mathf.Tan(theta / 2.0f)
+
+            //    // x,z location relative to the center of the circle
+            //    Vector3 unshiftedPointOnCircle = new Vector3(Mathf.Cos(rad), 0, Mathf.Sin(rad));
+
+            //    localPoints[i] = unshiftedPointOnCircle + circleCenter;
+            //    localNormals[i] = Vector3.up; // directions, or point in local space?
+            //    localTangents[i] = Vector3.Cross(unshiftedPointOnCircle.normalized, Vector3.up); // directions, or point in local space?
+
+            //}
 
             // Todo:  add final point ( the end of the exit leg along the final tangent )
         }
@@ -253,10 +300,11 @@ namespace PathCreation
 
         #region Public methods and accessors
 
-        public void UpdateTransform(Transform transform)
-        {
-            this.transform = transform;
-        }
+        //public void UpdateTransform(Transform transform)
+        //{
+        //    this.transform = transform;
+        //}
+
         public int NumPoints
         {
             get
@@ -489,4 +537,5 @@ namespace PathCreation
         //}
 
     }
+
 }

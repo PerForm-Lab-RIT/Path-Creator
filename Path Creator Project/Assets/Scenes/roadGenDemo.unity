@@ -236,6 +236,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f9b45c3f4c2e6e428b4d74560722497, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  space: 0
+  localPoints: []
+  localTangents: []
+  localNormals: []
+  up: {x: 0, y: 0, z: 0}
+  straightLegLength: 20
+  arcLengthM: 40
+  circleRadiusM: 20
+  arcResolutionVertPerDegree: 20
+  isClosedLoop: 0
 --- !u!114 &1014254057
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -245,11 +255,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 1014254055}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b275c3b78f8717c4cbc60f74a3247f67, type: 3}
+  m_Script: {fileID: 11500000, guid: 01bdd696f47edee46bb65c3a20f2ee57, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  pathCreator: {fileID: 0}
-  autoUpdate: 1
+  vPath: {fileID: 1014254056}
   roadWidth: 0.4
   thickness: 0.15
   flattenSurface: 0
