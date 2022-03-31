@@ -249,8 +249,8 @@ MonoBehaviour:
   up: {x: 0, y: 0, z: 0}
   straightLegLength: 20
   arcLengthM: 40
-  circleRadiusM: 20
-  verticesPerMeter: 1
+  circleRadiusM: 50
+  verticesPerMeter: 5
   isClosedLoop: 0
 --- !u!114 &1014254057
 MonoBehaviour:

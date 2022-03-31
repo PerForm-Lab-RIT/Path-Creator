@@ -9,7 +9,7 @@ namespace PathCreation
     public class PerformRoadMeshCreator : MonoBehaviour
     {
 
-        [SerializeField, HideInInspector]
+        
         public PerformVertexPath vPath;
 
         [Header("Road settings")]
@@ -32,10 +32,11 @@ namespace PathCreation
 
         private void Start()
         {
+            // updatePoints(float straightLegLength, float turnAngle, float circleRadiusM, int verticesPerMeter, bool isLeftTurn, Transform transform)
             vPath.updatePoints(10.0f,
-                30.0f,
-                30.0f,
-                30,
+                50.0f,
+                10.0f,
+                5,
                 false,
                 gameObject.transform);
 
