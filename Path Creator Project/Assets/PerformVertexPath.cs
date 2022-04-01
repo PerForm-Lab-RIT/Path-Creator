@@ -61,7 +61,7 @@ namespace PathCreation
         // Added by GD
         public float straightLegLength = 20.0f; // legnth of the straight entrance / entrance portion of the road
         public float arcLengthM = 40.0f; // length of the arc in meters
-        public float circleRadiusM = 50.0f;
+        public float circleRadiusM = 20.0f;
         public int verticesPerMeter = 5;
 
         [SerializeField, HideInInspector]
@@ -98,9 +98,9 @@ namespace PathCreation
 
             length = 2 * straightLegLength + arcLengthM;
             int numVertsOnAStraightLeg = Mathf.RoundToInt(straightLegLength * verticesPerMeter);
-            int numVertsOnArc = Mathf.RoundToInt(arcLengthM / verticesPerMeter);
-            //int numVerts = 2 * numVertsOnAStraightLeg + numVertsOnArc;
+            int numVertsOnArc = Mathf.RoundToInt(arcLengthM * verticesPerMeter);
             int numVerts = 2 * numVertsOnAStraightLeg + numVertsOnArc;
+            //int numVerts = numVertsOnAStraightLeg + numVertsOnArc;
 
             space = PathSpace.xz;
 
@@ -110,7 +110,7 @@ namespace PathCreation
 
             // the 2 is for the starting and ending vertex of the straight line segment
             // the second term reflects the number of vert long the arc
-            //int numVerts = 2 + Mathf.RoundToInt(Mathf.Rad2Deg * arcAngleRads * arcResolutionVertPerDegree);d
+            //int numVerts = 2 + Mathf.RoundToInt(Mathf.Rad2Deg * arcAngleRads * arcResolutionVertPerDegree);
 
             localPoints = new Vector3[numVerts];
             localNormals = new Vector3[numVerts];
@@ -180,7 +180,7 @@ namespace PathCreation
 
                 localPoints[i] = unshiftedPointOnCircle + circleCenter;
                 localNormals[i] = (circleCenter - localPoints[i]).normalized; //P2 - P1 gives direction, the normal is always the direction vector pointing towards the circle center -AG
-                localTangents[i] = Vector3.Cross(localNormals[i], Vector3.up); // tangent will be the result of the cross product between Vector down (right hand rule) and normal. Already normalized. -AG
+                localTangents[i] = Vector3.Cross(localNormals[i], Vector3.up); // tangent will be the result of the cross product between Vector up (left hand rule) and normal. Already normalized. -AG
 
                 cumulativeLengthAtEachVertex[i] = straightLegLength + ((float)i * arcLengthM / numVertsOnArc);
                 times[i] = cumulativeLengthAtEachVertex[2] / length;
