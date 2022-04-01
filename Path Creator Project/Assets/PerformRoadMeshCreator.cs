@@ -16,12 +16,17 @@ namespace PathCreation
         public float roadWidth = .4f;
         [Range(0, .5f)]
         public float thickness = .15f;
+        public float straightLegLength;
+        public float arcLengthM;
+        public float circleRadiusM;
+        public bool isLeftTurn = false;
         public bool flattenSurface;
 
         [Header("Material settings")]
         public Material roadMaterial;
         public Material undersideMaterial;
-        public float textureTiling = 1;
+        //public float textureTiling; // seems like texture tiling of the same amount as straight leg length works
+        
 
         [SerializeField, HideInInspector]
         GameObject meshHolder;
@@ -32,13 +37,11 @@ namespace PathCreation
 
         private void Start()
         {
-            // updatePoints(float straightLegLength, float turnAngle, float circleRadiusM, int verticesPerMeter, bool isLeftTurn, Transform transform)
-            vPath.updatePoints(10.0f,
-                50.0f,
-                10.0f,
-                5,
-                false,
-                gameObject.transform);
+            // updatePoints(float straightLegLength, float arcLengthM, float circleRadiusM, bool isLeftTurn)
+            vPath.updatePoints(straightLegLength,
+                arcLengthM,
+                circleRadiusM,
+                false);
 
             
             updateMesh();
@@ -184,6 +187,8 @@ namespace PathCreation
 
         void AssignMaterials()
         {
+            float textureTiling = straightLegLength;
+
             if (roadMaterial != null && undersideMaterial != null)
             {
                 meshRenderer.sharedMaterials = new Material[] { roadMaterial, undersideMaterial, undersideMaterial };

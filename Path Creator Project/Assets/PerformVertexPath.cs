@@ -59,10 +59,8 @@ namespace PathCreation
         // const float minVertexSpacing = .01f;
 
         // Added by GD
-        public float straightLegLength = 20.0f; // legnth of the straight entrance / entrance portion of the road
-        public float arcLengthM = 40.0f; // length of the arc in meters
-        public float circleRadiusM = 20.0f;
-        public int verticesPerMeter = 5;
+        private float straightLegLength; // length of the straight entrance / entrance portion of the road
+        private float circleRadiusM; // circle radius in meters
 
         [SerializeField, HideInInspector]
         public bool isClosedLoop = false;
@@ -91,26 +89,28 @@ namespace PathCreation
 
         /// Internal contructor
         /// 
-        public void updatePoints(float straightLegLength, float turnAngle, float circleRadiusM, int verticesPerMeter, bool isLeftTurn, Transform transform)
+        public void updatePoints(float straightLegLength, float arcLengthM, float circleRadiusM, bool isLeftTurn)
         {
             // how much of an angle you want to turn  in degrees
-            float arcLengthM = turnAngle * Mathf.Deg2Rad * circleRadiusM;
+            float turnAngle = arcLengthM / circleRadiusM;
+            if (turnAngle > Mathf.PI)
+            {
+                Debug.LogError("Arc Length divided by circle radius must be less than 180 degrees.");
+
+            }
+            float intervals = (turnAngle * Mathf.Rad2Deg) / (1.0f); // calculates number of vertices on the arc, spaced out by 1 degree
+            int verticesPerMeter = Mathf.RoundToInt(intervals / arcLengthM); // we should calculate the spacing of the vertices, there should be more for longer arcLength (var interval increases with turnAngle)
 
             length = 2 * straightLegLength + arcLengthM;
             int numVertsOnAStraightLeg = Mathf.RoundToInt(straightLegLength * verticesPerMeter);
             int numVertsOnArc = Mathf.RoundToInt(arcLengthM * verticesPerMeter);
             int numVerts = 2 * numVertsOnAStraightLeg + numVertsOnArc;
-            //int numVerts = numVertsOnAStraightLeg + numVertsOnArc;
 
             space = PathSpace.xz;
 
             //isClosedLoop = bezierPath.IsClosed;
 
             //float arcAngleRads = arcLengthM / Mathf.PI; //unnecessary if passed into the function -AG
-
-            // the 2 is for the starting and ending vertex of the straight line segment
-            // the second term reflects the number of vert long the arc
-            //int numVerts = 2 + Mathf.RoundToInt(Mathf.Rad2Deg * arcAngleRads * arcResolutionVertPerDegree);
 
             localPoints = new Vector3[numVerts];
             localNormals = new Vector3[numVerts];
@@ -124,9 +124,6 @@ namespace PathCreation
 
             // Figure out up direction for path
             //up = (bounds.size.z > bounds.size.y) ? Vector3.up : -Vector3.forward;
-
-            up = Vector3.up; // gD
-            Vector3 lastRotationAxis = up;
 
             ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  
             ////////  Here is a three vector straight road (a test case!)
@@ -160,12 +157,12 @@ namespace PathCreation
                 localTangents[i] = new Vector3(0, 0, 1);
                 localNormals[i] = new Vector3(1, 0, 0);
 
-                times[i] = cumulativeLengthAtEachVertex[i] / length; // not sure what the point of this is? -AG
+                times[i] = cumulativeLengthAtEachVertex[i] / length; // tells you how far along the ENTIRE path you are (like a percentage of both straight segments and curve combined)
             }
 
             // The arc
 
-            float rateOfChangeRads = turnAngle * Mathf.Deg2Rad / numVertsOnArc;
+            float rateOfChangeRads = turnAngle / numVertsOnArc;
 
             for (int i = numVertsOnAStraightLeg; i < numVertsOnAStraightLeg + numVertsOnArc; i++)
             {
@@ -182,8 +179,8 @@ namespace PathCreation
                 localNormals[i] = (circleCenter - localPoints[i]).normalized; //P2 - P1 gives direction, the normal is always the direction vector pointing towards the circle center -AG
                 localTangents[i] = Vector3.Cross(localNormals[i], Vector3.up); // tangent will be the result of the cross product between Vector up (left hand rule) and normal. Already normalized. -AG
 
-                cumulativeLengthAtEachVertex[i] = straightLegLength + ((float)i * arcLengthM / numVertsOnArc);
-                times[i] = cumulativeLengthAtEachVertex[2] / length;
+                cumulativeLengthAtEachVertex[i] = straightLegLength + ((float)(i-numVertsOnAStraightLeg) * arcLengthM / numVertsOnArc);
+                times[i] = cumulativeLengthAtEachVertex[i] / length;
 
             }
 
@@ -195,7 +192,7 @@ namespace PathCreation
             float j = 0;
             for (int i = numVertsOnArc + numVertsOnAStraightLeg; i < numVerts; i++)
             {
-                cumulativeLengthAtEachVertex[i] = straightLegLength + arcLengthM + (float)i * (straightLegLength / numVertsOnAStraightLeg); // don't think this is right anymore since we changed i
+                cumulativeLengthAtEachVertex[i] = straightLegLength + arcLengthM + j * (straightLegLength / numVertsOnAStraightLeg); // don't think this is right anymore since we changed i
                 float distanceOnLeg = straightLegLength * j / (float)numVertsOnAStraightLeg;
                 //((float)(i - (numVertsOnArc + numVertsOnAStraightLeg)) / (float)numVertsOnAStraightLeg);
 
@@ -204,7 +201,7 @@ namespace PathCreation
                 localNormals[i] = newLocalNormal;
                 j++;
 
-                // times[i + numVertsOnArc + numVertsOnAStraightLeg] = cumulativeLengthAtEachVertex[i + numVertsOnArc + numVertsOnAStraightLeg] / length; // not sure what the point of this is? -AG
+                times[i] = cumulativeLengthAtEachVertex[i] / length; // not sure what the point of this is? -AG
             }
 
 

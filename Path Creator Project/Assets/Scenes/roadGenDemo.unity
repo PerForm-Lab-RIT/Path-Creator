@@ -247,10 +247,6 @@ MonoBehaviour:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}
   up: {x: 0, y: 0, z: 0}
-  straightLegLength: 20
-  arcLengthM: 40
-  circleRadiusM: 50
-  verticesPerMeter: 5
   isClosedLoop: 0
 --- !u!114 &1014254057
 MonoBehaviour:
@@ -267,10 +263,13 @@ MonoBehaviour:
   vPath: {fileID: 1014254056}
   roadWidth: 0.4
   thickness: 0.15
+  straightLegLength: 20
+  arcLengthM: 30
+  circleRadiusM: 10
+  isLeftTurn: 0
   flattenSurface: 0
   roadMaterial: {fileID: 2100000, guid: b5df4735192845740bd11076dc9cdc99, type: 2}
   undersideMaterial: {fileID: 2100000, guid: c1d8d882244c5344fa86a8fd23246f81, type: 2}
-  textureTiling: 1
   meshHolder: {fileID: 0}
 --- !u!4 &1014254058
 Transform:
