@@ -19,7 +19,7 @@ namespace PathCreation
         public float straightLegLength;
         public float arcLengthM;
         public float circleRadiusM;
-        public bool isLeftTurn = false;
+        public bool isLeftTurn;
         public bool flattenSurface;
 
         [Header("Material settings")]
@@ -41,7 +41,7 @@ namespace PathCreation
             vPath.updatePoints(straightLegLength,
                 arcLengthM,
                 circleRadiusM,
-                false);
+                isLeftTurn);
 
             
             updateMesh();
@@ -187,7 +187,7 @@ namespace PathCreation
 
         void AssignMaterials()
         {
-            float textureTiling = straightLegLength;
+            float textureTiling = straightLegLength; // seems like this is a reasonable way to define the texture tiling value for it to look reasonable.
 
             if (roadMaterial != null && undersideMaterial != null)
             {

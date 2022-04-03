@@ -52,15 +52,10 @@ namespace PathCreation
         [SerializeField, HideInInspector]
         public Vector3 up;
 
-        private bool isLeftTurn = false;
-
         // Default values and constants:
         // const int accuracy = 10; // A scalar for how many times bezier path is divided when determining vertex positions
         // const float minVertexSpacing = .01f;
 
-        // Added by GD
-        private float straightLegLength; // length of the straight entrance / entrance portion of the road
-        private float circleRadiusM; // circle radius in meters
 
         [SerializeField, HideInInspector]
         public bool isClosedLoop = false;
@@ -105,13 +100,9 @@ namespace PathCreation
             int numVertsOnAStraightLeg = Mathf.RoundToInt(straightLegLength * verticesPerMeter);
             int numVertsOnArc = Mathf.RoundToInt(arcLengthM * verticesPerMeter);
             int numVerts = 2 * numVertsOnAStraightLeg + numVertsOnArc;
+            //int numVerts = numVertsOnAStraightLeg + numVertsOnArc;
 
             space = PathSpace.xz;
-
-            //isClosedLoop = bezierPath.IsClosed;
-
-            //float arcAngleRads = arcLengthM / Mathf.PI; //unnecessary if passed into the function -AG
-
             localPoints = new Vector3[numVerts];
             localNormals = new Vector3[numVerts];
             localTangents = new Vector3[numVerts];
@@ -120,29 +111,7 @@ namespace PathCreation
             /// Percentage along the path at each vertex (0 being start of path, and 1 being the end)
             times = new float[numVerts];
 
-            // bounds = new Bounds((pathSplitData.minMax.Min + pathSplitData.minMax.Max) / 2, pathSplitData.minMax.Max - pathSplitData.minMax.Min);
 
-            // Figure out up direction for path
-            //up = (bounds.size.z > bounds.size.y) ? Vector3.up : -Vector3.forward;
-
-            ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  
-            ////////  Here is a three vector straight road (a test case!)
-            //length = straightLegLength;
-
-            //localPoints[0] = new Vector3(0, 0, -straightLegLength);
-            //localTangents[0] = new Vector3(0, 0, 1); // directions, or point in local space?
-            //localNormals[0] = new Vector3(1, 0, 0); // directions, or point in local space?
-            //cumulativeLengthAtEachVertex[0] = 0;
-            //times[0] = cumulativeLengthAtEachVertex[0] / length;
-
-            //localPoints[1] = new Vector3(0, 0, 0);
-            //localTangents[1] = new Vector3(0, 0, 1); // directions, or point in local space?
-            //localNormals[1] = new Vector3(1, 0, 0); // directions, or point in local space?
-            //cumulativeLengthAtEachVertex[1] = straightLegLength/2.0f;
-            //times[0] = cumulativeLengthAtEachVertex[1] / length;
-
-            ////////
-            ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  
             // The incoming straight leg of the road.
 
             Vector3 straightPathDir = new Vector3(0, 0, 1); // assuming coordinate system origin is "reset" before each straight path
@@ -164,25 +133,46 @@ namespace PathCreation
 
             float rateOfChangeRads = turnAngle / numVertsOnArc;
 
-            for (int i = numVertsOnAStraightLeg; i < numVertsOnAStraightLeg + numVertsOnArc; i++)
+            // move clockwise from pi by rateOfChangeRads * i for right turn
+            // move counterclockwise for left
+            if (isLeftTurn)
             {
-                // move clockwise from pi by rateOfChangeRads * i
-                float rad = Mathf.PI - rateOfChangeRads * (float)(i - numVertsOnAStraightLeg);
+                for (int i = numVertsOnAStraightLeg; i < numVertsOnAStraightLeg + numVertsOnArc; i++)
+                {
+                    // circle center position along the local x axis
+                    Vector3 circleCenter = new Vector3(-circleRadiusM, 0, 0);
+                    float rad = rateOfChangeRads * (float)(i - numVertsOnAStraightLeg);
+                    // x,z location relative to the center of the circle
+                    Vector3 unshiftedPointOnCircle = circleRadiusM * new Vector3(Mathf.Cos(rad), 0, Mathf.Sin(rad));
 
-                // circle center position along the local x axis
-                Vector3 circleCenter = new Vector3(circleRadiusM, 0, 0);
+                    localPoints[i] = unshiftedPointOnCircle + circleCenter;
+                    localNormals[i] = - (circleCenter - localPoints[i]).normalized; //P2 - P1 gives direction, the normal is always the direction vector pointing towards the circle center -AG
+                    localTangents[i] = - Vector3.Cross(localNormals[i], Vector3.down); // tangent will be the result of the cross product between Vector up (left hand rule) and normal. Already normalized. -AG
+                    cumulativeLengthAtEachVertex[i] = straightLegLength + ((float)(i - numVertsOnAStraightLeg) * arcLengthM / numVertsOnArc);
+                    times[i] = cumulativeLengthAtEachVertex[i] / length;
+                }
+            }
+            else
+            {
+                for (int i = numVertsOnAStraightLeg; i < numVertsOnAStraightLeg + numVertsOnArc; i++)
+                {
+                    // circle center position along the local x axis
+                    Vector3 circleCenter = new Vector3(circleRadiusM, 0, 0);
+                    float rad = Mathf.PI - rateOfChangeRads * (float)(i - numVertsOnAStraightLeg);
+                    // x,z location relative to the center of the circle
+                    Vector3 unshiftedPointOnCircle = circleRadiusM * new Vector3(Mathf.Cos(rad), 0, Mathf.Sin(rad));
 
-                // x,z location relative to the center of the circle
-                Vector3 unshiftedPointOnCircle = circleRadiusM * new Vector3(Mathf.Cos(rad), 0, Mathf.Sin(rad));
-
-                localPoints[i] = unshiftedPointOnCircle + circleCenter;
-                localNormals[i] = (circleCenter - localPoints[i]).normalized; //P2 - P1 gives direction, the normal is always the direction vector pointing towards the circle center -AG
-                localTangents[i] = Vector3.Cross(localNormals[i], Vector3.up); // tangent will be the result of the cross product between Vector up (left hand rule) and normal. Already normalized. -AG
-
-                cumulativeLengthAtEachVertex[i] = straightLegLength + ((float)(i-numVertsOnAStraightLeg) * arcLengthM / numVertsOnArc);
-                times[i] = cumulativeLengthAtEachVertex[i] / length;
+                    localPoints[i] = unshiftedPointOnCircle + circleCenter;
+                    localNormals[i] = (circleCenter - localPoints[i]).normalized; //P2 - P1 gives direction, the normal is always the direction vector pointing towards the circle center -AG
+                    localTangents[i] = Vector3.Cross(localNormals[i], Vector3.up); // tangent will be the result of the cross product between Vector up (left hand rule) and normal. Already normalized. -AG
+                    cumulativeLengthAtEachVertex[i] = straightLegLength + ((float)(i - numVertsOnAStraightLeg) * arcLengthM / numVertsOnArc);
+                    times[i] = cumulativeLengthAtEachVertex[i] / length;
+                }
 
             }
+
+
+
 
             Vector3 newStraightDir = localTangents[numVertsOnAStraightLeg + numVertsOnArc - 1];
             Vector3 newLocalTangent = newStraightDir;
