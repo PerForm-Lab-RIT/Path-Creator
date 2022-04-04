@@ -1,10 +1,9 @@
 using System.Collections.Generic;
-using PathCreation.Utility;
 using UnityEngine;
 
 
 
-
+[ExecuteInEditMode]
 public class roadGen : MonoBehaviour
 {
 
@@ -29,12 +28,13 @@ public class roadGen : MonoBehaviour
     [SerializeField, HideInInspector]
     GameObject meshHolder;
 
-    MeshFilter meshFilter;
-    MeshRenderer meshRenderer;
-    Mesh mesh;
+    //MeshFilter meshFilter;
+    //MeshRenderer meshRenderer;
+    //Mesh mesh;
 
 
-        
+    public bool refresh = false;
+    public bool live_update = true;
         
     [SerializeField, HideInInspector]
     public Vector3[] localPoints;
@@ -84,10 +84,32 @@ public class roadGen : MonoBehaviour
     }
 
     public void OnValidate()
+    {   
+
+        if (refresh)
+        {
+            updatePoints();
+            updateMesh();
+            refresh = false;
+        }
+
+        if (live_update)
+        {
+            updatePoints();
+            updateMesh();
+            
+        }
+
+
+    }
+
+    void OnEnable()
     {
         updatePoints();
         updateMesh();
+        refresh = false;
     }
+
 
     public void updatePoints()
     {
@@ -119,7 +141,7 @@ public class roadGen : MonoBehaviour
         // The incoming straight leg of the road.
 
         Vector3 straightPathDir = new Vector3(0, 0, 1); // assuming coordinate system origin is "reset" before each straight path
-        Vector3 startingPoint = new Vector3(0, 0, -straightLegLength);
+        Vector3 startingPoint = new Vector3(0, 0, 0);
 
         for (int i = 0; i < numVertsOnAStraightLeg; i++)
         {
@@ -144,7 +166,7 @@ public class roadGen : MonoBehaviour
             for (int i = numVertsOnAStraightLeg; i < numVertsOnAStraightLeg + numVertsOnArc; i++)
             {
                 // circle center position along the local x axis
-                Vector3 circleCenter = new Vector3(-circleRadiusM, 0, 0);
+                Vector3 circleCenter = new Vector3(-circleRadiusM, 0, straightLegLength);
                 float rad = rateOfChangeRads * (float)(i - numVertsOnAStraightLeg);
                 // x,z location relative to the center of the circle
                 Vector3 unshiftedPointOnCircle = circleRadiusM * new Vector3(Mathf.Cos(rad), 0, Mathf.Sin(rad));
@@ -161,7 +183,7 @@ public class roadGen : MonoBehaviour
             for (int i = numVertsOnAStraightLeg; i < numVertsOnAStraightLeg + numVertsOnArc; i++)
             {
                 // circle center position along the local x axis
-                Vector3 circleCenter = new Vector3(circleRadiusM, 0, 0);
+                Vector3 circleCenter = new Vector3(circleRadiusM, 0, straightLegLength);
                 float rad = Mathf.PI - rateOfChangeRads * (float)(i - numVertsOnAStraightLeg);
                 // x,z location relative to the center of the circle
                 Vector3 unshiftedPointOnCircle = circleRadiusM * new Vector3(Mathf.Cos(rad), 0, Mathf.Sin(rad));
@@ -196,13 +218,10 @@ public class roadGen : MonoBehaviour
         }
 
 
-
-        // Todo:  add final point ( the end of the exit leg along the final tangent )
     }
 
         
 
-    //protected override void PathUpdated()
     void updateMesh()
     {
             
@@ -297,6 +316,7 @@ public class roadGen : MonoBehaviour
             triIndex += 6;
         }
 
+        Mesh mesh = gameObject.GetComponent<MeshFilter>().sharedMesh;
         mesh.Clear();
         mesh.vertices = verts;
         mesh.uv = uvs;
@@ -313,32 +333,27 @@ public class roadGen : MonoBehaviour
     {
 
         meshHolder = this.gameObject;
-        //if (meshHolder == null)
-        //{
-        //    meshHolder = new GameObject("Road Mesh Holder");
-        //}
 
-        meshHolder.transform.rotation = Quaternion.identity;
-        meshHolder.transform.position = Vector3.zero;
-        meshHolder.transform.localScale = Vector3.one;
+        transform.rotation = Quaternion.identity;
+        transform.position = Vector3.zero;
+        transform.localScale = Vector3.one;
 
         // Ensure mesh renderer and filter components are assigned
-        if (!meshHolder.gameObject.GetComponent<MeshFilter>())
+        if (!gameObject.GetComponent<MeshFilter>())
         {
-            meshHolder.gameObject.AddComponent<MeshFilter>();
+            gameObject.AddComponent<MeshFilter>();
         }
-        if (!meshHolder.GetComponent<MeshRenderer>())
+        if (!GetComponent<MeshRenderer>())
         {
-            meshHolder.gameObject.AddComponent<MeshRenderer>();
+            gameObject.AddComponent<MeshRenderer>();
         }
 
-        meshRenderer = meshHolder.GetComponent<MeshRenderer>();
-        meshFilter = meshHolder.GetComponent<MeshFilter>();
-        if (mesh == null)
+
+        if (gameObject.GetComponent<MeshFilter>().sharedMesh == null)
         {
-            mesh = new Mesh();
+            transform.GetComponent<MeshFilter>().sharedMesh = new Mesh();
         }
-        //meshFilter.sharedMesh = mesh;
+        
     }
 
     void AssignMaterials()
@@ -347,8 +362,9 @@ public class roadGen : MonoBehaviour
 
         if (roadMaterial != null && undersideMaterial != null)
         {
-            meshRenderer.sharedMaterials = new Material[] { roadMaterial, undersideMaterial, undersideMaterial };
-            meshRenderer.sharedMaterials[0].mainTextureScale = new Vector3(1, textureTiling);
+            
+            GetComponent<MeshRenderer>().sharedMaterials = new Material[] { roadMaterial, undersideMaterial, undersideMaterial };
+            GetComponent<MeshRenderer>().sharedMaterials[0].mainTextureScale = new Vector3(1, textureTiling);
         }
     }
 
