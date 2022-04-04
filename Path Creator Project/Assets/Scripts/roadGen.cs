@@ -34,7 +34,7 @@ public class roadGen : MonoBehaviour
 
 
     public bool refresh = false;
-    public bool live_update = true;
+    public bool liveUpdate = true;
         
     [SerializeField, HideInInspector]
     public Vector3[] localPoints;
@@ -93,7 +93,7 @@ public class roadGen : MonoBehaviour
             refresh = false;
         }
 
-        if (live_update)
+        if (liveUpdate)
         {
             updatePoints();
             updateMesh();
